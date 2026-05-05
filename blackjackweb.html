@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BlackjackWeb ♠</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --felt: #1A5C38;
+    --felt-light: #2E7D52;
+    --felt-dark: #0D3D25;
+    --bg: #0D1B14;
+    --gold: #C9A84C;
+    --gold-light: #E8C96A;
+    --gold-dark: #9A7830;
+    --card-bg: #FEFDF8;
+    --card-red: #C0392B;
+    --card-black: #1a1a1a;
+    --chip-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    --text-light: #F0EAD6;
+    --text-muted: #8FA89A;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Crimson Text', serif;
+    background: var(--bg);
+    color: var(--text-light);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  /* NOISE TEXTURE */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  /* ── START SCREEN ── */
+  #start-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+    animation: fadeIn 0.8s ease;
+  }
+  .logo-wrap { text-align: center; margin-bottom: 3rem; }
+  .logo-suits {
+    font-size: 2rem;
+    letter-spacing: 1.2rem;
+    color: var(--gold);
+    margin-bottom: 0.5rem;
+    animation: suitsPulse 3s ease-in-out infinite;
+  }
+  @keyframes suitsPulse { 0%,100%{opacity:0.7}50%{opacity:1} }
+  .logo-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(3rem, 8vw, 6rem);
+    font-weight: 900;
+    color: var(--gold);
+    text-shadow: 0 0 40px rgba(201,168,76,0.4), 0 2px 0 var(--gold-dark);
+    letter-spacing: 0.05em;
+    line-height: 1;
+  }
+  .logo-sub {
+    font-family: 'Crimson Text', serif;
+    font-style: italic;
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    letter-spacing: 0.3em;
+    margin-top: 0.4rem;
+  }
+  .start-card {
+    background: linear-gradient(145deg, rgba(46,125,82,0.15), rgba(26,92,56,0.08));
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 16px;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 400px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(201,168,76,0.1);
+  }
+  .start-balance-display {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: rgba(201,168,76,0.08);
+    border-radius: 10px;
+    border: 1px solid rgba(201,168,76,0.15);
+  }
+  .start-balance-label { font-size: 0.85rem; color: var(--text-muted); letter-spacing: 0.2em; text-transform: uppercase; }
+  .start-balance-amount { font-family: 'Playfair Display', serif; font-size: 2.2rem; color: var(--gold); font-weight: 700; }
+  .input-group { margin-bottom: 1.5rem; }
+  .input-label { display: block; font-size: 0.8rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; }
+  .input-field {
+    width: 100%;
+    padding: 0.9rem 1.2rem;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(201,168,76,0.25);
+    border-radius: 8px;
+    color: var(--text-light);
+    font-family: 'Crimson Text', serif;
+    font-size: 1.1rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .input-field:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,0.1); }
+  .btn-primary {
+    width: 100%;
+    padding: 1rem;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    border: none;
+    border-radius: 8px;
+    color: #1a1a1a;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 20px rgba(201,168,76,0.3);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(201,168,76,0.4); background: linear-gradient(135deg, var(--gold-light), var(--gold)); }
+  .btn-primary:active { transform: translateY(0); }
+  .stats-section { display: flex; gap: 1.5rem; justify-content: center; padding: 0.5rem; }
+  .stat-item { text-align: center; }
+  .stat-val { font-family: 'Courier Prime', monospace; font-size: 1.2rem; color: var(--gold); font-weight: 700; }
+  .stat-lbl { font-size: 0.7rem; color: var(--text-muted); letter-spacing: 0.15em; text-transform: uppercase; }
+
+  /* ── GAME SCREEN ── */
+  #game-screen {
+    display: none;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  .table-area {
+    flex: 1;
+    background: radial-gradient(ellipse at 50% 60%, var(--felt-light) 0%, var(--felt) 40%, var(--felt-dark) 100%);
+    position: relative;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+  }
+  .table-area::before {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border: 2px solid rgba(201,168,76,0.25);
+    border-radius: 20px;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .table-area::after {
+    content: '';
+    position: absolute;
+    inset: 12px;
+    border: 1px solid rgba(201,168,76,0.1);
+    border-radius: 18px;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .game-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    position: relative;
+    z-index: 2;
+  }
+  .player-info { display: flex; align-items: center; gap: 0.8rem; }
+  .player-name-badge { font-family: 'Playfair Display', serif; font-size: 1rem; color: var(--gold); font-weight: 700; }
+  .balance-badge {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 20px;
+    padding: 0.3rem 0.9rem;
+    font-family: 'Courier Prime', monospace;
+    font-size: 1rem;
+    color: var(--gold);
+    font-weight: 700;
+  }
+  .logo-small { font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 900; color: rgba(201,168,76,0.5); letter-spacing: 0.05em; }
+  .btn-menu {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 8px;
+    padding: 0.4rem 0.8rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-menu:hover { color: var(--gold); border-color: rgba(201,168,76,0.4); }
+  .dealer-zone { text-align: center; margin-bottom: 0.5rem; position: relative; z-index: 2; }
+  .zone-label { font-size: 0.75rem; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 0.4rem; }
+  .hand-value { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 700; color: white; min-height: 2rem; transition: all 0.3s; }
+  .hand-value.bust { color: #e74c3c; }
+  .hand-value.blackjack { color: var(--gold); text-shadow: 0 0 20px rgba(201,168,76,0.5); }
+  .cards-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    min-height: 110px;
+    position: relative;
+  }
+  .table-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(201,168,76,0.2), transparent);
+    margin: 0.4rem 0;
+    position: relative;
+    z-index: 2;
+  }
+  .bet-on-table {
+    text-align: center;
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    position: relative;
+    z-index: 2;
+  }
+  .bet-chip-display { font-family: 'Playfair Display', serif; font-size: 0.9rem; color: rgba(255,255,255,0.4); }
+  .bet-amount-display { font-family: 'Courier Prime', monospace; font-size: 1.5rem; color: var(--gold); font-weight: 700; }
+  .player-zone { text-align: center; margin-top: 0.5rem; position: relative; z-index: 2; }
+  .split-hands { display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap; }
+  .split-hand { display: flex; flex-direction: column; align-items: center; }
+  .split-hand.active-split .hand-value { color: var(--gold); }
+  .result-banner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    background: rgba(13, 27, 20, 0.96);
+    border: 2px solid var(--gold);
+    border-radius: 12px;
+    padding: 1.2rem 2.5rem;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    font-weight: 900;
+    text-align: center;
+    z-index: 100;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    white-space: nowrap;
+    box-shadow: 0 0 60px rgba(0,0,0,0.8);
+    pointer-events: none;
+  }
+  .result-banner.show { transform: translate(-50%, -50%) scale(1); }
+  .result-banner.win { color: var(--gold); border-color: var(--gold); }
+  .result-banner.lose { color: #e74c3c; border-color: #c0392b; }
+  .result-banner.push { color: #95a5a6; border-color: #7f8c8d; }
+  .result-banner.blackjack-win { color: #f1c40f; border-color: #f39c12; }
+
+  /* ── BOTTOM PANEL ── */
+  .bottom-panel {
+    background: linear-gradient(180deg, #0a1610 0%, #060e09 100%);
+    border-top: 1px solid rgba(201,168,76,0.15);
+    padding: 1rem 1.5rem 1.5rem;
+  }
+  .chip-section { margin-bottom: 0.8rem; }
+  .chip-label { font-size: 0.7rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.6rem; text-align: center; }
+  .chips-row { display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap; }
+  .chip {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: 3px dashed rgba(255,255,255,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Courier Prime', monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    box-shadow: var(--chip-shadow), inset 0 2px 0 rgba(255,255,255,0.2);
+    user-select: none;
+    flex-shrink: 0;
+  }
+  .chip:hover { transform: translateY(-4px) scale(1.05); }
+  .chip:active { transform: translateY(0) scale(0.95); }
+  .chip.disabled { opacity: 0.3; cursor: not-allowed; pointer-events: none; }
+  .chip[data-val="5"]   { background: radial-gradient(circle at 35% 35%, #e74c3c, #922b21); color: white; border-color: rgba(255,255,255,0.25); }
+  .chip[data-val="10"]  { background: radial-gradient(circle at 35% 35%, #3498db, #1a5276); color: white; border-color: rgba(255,255,255,0.25); }
+  .chip[data-val="25"]  { background: radial-gradient(circle at 35% 35%, #27ae60, #145a32); color: white; border-color: rgba(255,255,255,0.25); }
+  .chip[data-val="50"]  { background: radial-gradient(circle at 35% 35%, #8e44ad, #5b2c6f); color: white; border-color: rgba(255,255,255,0.25); }
+  .chip[data-val="100"] { background: radial-gradient(circle at 35% 35%, #e67e22, #7d5109); color: white; border-color: rgba(255,255,255,0.25); }
+  .chip[data-val="250"] { background: radial-gradient(circle at 35% 35%, #c9a84c, #7d6608); color: #1a1a1a; border-color: rgba(255,255,255,0.3); }
+  .chip[data-val="500"] { background: radial-gradient(circle at 35% 35%, #ecf0f1, #95a5a6); color: #1a1a1a; border-color: rgba(0,0,0,0.2); }
+  .chip[data-val="all"] { background: radial-gradient(circle at 35% 35%, #1a1a1a, #000); color: var(--gold); border-color: var(--gold); font-size: 0.6rem; }
+  .current-bet-row { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 0.8rem; }
+  .current-bet-label { font-size: 0.8rem; color: var(--text-muted); letter-spacing: 0.15em; text-transform: uppercase; }
+  .current-bet-value { font-family: 'Courier Prime', monospace; font-size: 1.4rem; color: var(--gold); font-weight: 700; min-width: 80px; text-align: center; }
+  .btn-clear-bet {
+    background: none;
+    border: 1px solid rgba(231,76,60,0.4);
+    border-radius: 6px;
+    color: #e74c3c;
+    padding: 0.25rem 0.6rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-clear-bet:hover { background: rgba(231,76,60,0.1); }
+  .action-row { display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap; }
+  .btn-action {
+    flex: 1;
+    min-width: 70px;
+    max-width: 130px;
+    padding: 0.8rem 0.5rem;
+    border-radius: 8px;
+    border: 1px solid;
+    font-family: 'Playfair Display', serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.05em;
+  }
+  .btn-action:disabled { opacity: 0.25; cursor: not-allowed; transform: none !important; }
+  .btn-action:not(:disabled):hover { transform: translateY(-2px); }
+  .btn-action:not(:disabled):active { transform: translateY(0); }
+  .btn-deal { background: linear-gradient(135deg, var(--gold), var(--gold-dark)); border-color: var(--gold-dark); color: #1a1a1a; box-shadow: 0 4px 20px rgba(201,168,76,0.3); max-width: 160px; }
+  .btn-hit { background: linear-gradient(135deg, #27ae60, #145a32); border-color: #0e3b21; color: white; box-shadow: 0 4px 15px rgba(39,174,96,0.2); }
+  .btn-stand { background: linear-gradient(135deg, #c0392b, #7b241c); border-color: #5b1c14; color: white; box-shadow: 0 4px 15px rgba(192,57,43,0.2); }
+  .btn-double { background: linear-gradient(135deg, #8e44ad, #5b2c6f); border-color: #3e1f4d; color: white; box-shadow: 0 4px 15px rgba(142,68,173,0.2); }
+  .btn-split { background: linear-gradient(135deg, #e67e22, #7d5109); border-color: #5a3a07; color: white; box-shadow: 0 4px 15px rgba(230,126,34,0.2); }
+  .btn-next { background: linear-gradient(135deg, #2c3e50, #1a252f); border-color: #1a252f; color: var(--gold); max-width: 160px; }
+
+  /* ── CARD ── */
+  .card {
+    width: 66px;
+    height: 95px;
+    background: var(--card-bg);
+    border-radius: 7px;
+    border: 1px solid #ddd;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 4px 5px;
+    margin: 2px;
+    box-shadow: 2px 4px 12px rgba(0,0,0,0.4);
+    position: relative;
+    flex-shrink: 0;
+    animation: cardDeal 0.35s cubic-bezier(0.34, 1.3, 0.64, 1) both;
+  }
+  @keyframes cardDeal { from{transform:translateY(-30px) rotate(-5deg) scale(0.8);opacity:0} to{transform:none;opacity:1} }
+  .card.face-down {
+    background: repeating-linear-gradient(45deg,#1a3a5c 0px,#1a3a5c 8px,#0d2840 8px,#0d2840 16px);
+    border-color: #0a1e30;
+  }
+  .card.face-down::after { content:'♠'; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:2rem; color:rgba(255,255,255,0.15); }
+  .card-corner { font-family:'Courier Prime',monospace; font-weight:700; font-size:0.72rem; line-height:1.1; text-align:center; }
+  .card-corner-bottom { transform:rotate(180deg); align-self:flex-end; }
+  .card-center { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:1.5rem; line-height:1; }
+  .card.red .card-corner, .card.red .card-center { color:var(--card-red); }
+  .card.black .card-corner, .card.black .card-center { color:var(--card-black); }
+
+  /* ── MODAL ── */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.85); display:flex; align-items:center; justify-content:center; z-index:500; padding:2rem; animation:fadeIn 0.3s ease; }
+  .modal-box { background:linear-gradient(145deg,#0d1b14,#0a1510); border:1px solid rgba(201,168,76,0.3); border-radius:16px; padding:2.5rem; text-align:center; max-width:360px; width:100%; box-shadow:0 30px 80px rgba(0,0,0,0.6); }
+  .modal-icon { font-size:3rem; margin-bottom:1rem; }
+  .modal-title { font-family:'Playfair Display',serif; font-size:1.8rem; color:var(--gold); margin-bottom:0.5rem; }
+  .modal-text { color:var(--text-muted); margin-bottom:1.5rem; line-height:1.6; font-size:1.05rem; }
+
+  .bankruptcy-indicator { background:rgba(231,76,60,0.1); border:1px solid rgba(231,76,60,0.3); border-radius:8px; padding:0.4rem 0.8rem; font-size:0.8rem; color:#e74c3c; text-align:center; margin-bottom:0.8rem; }
+
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  .hidden { display:none !important; }
+
+  @media(max-width:480px){
+    .chip{width:44px;height:44px;font-size:0.6rem}
+    .card{width:56px;height:80px}
+    .card-corner{font-size:0.62rem}
+    .card-center{font-size:1.2rem}
+    .btn-action{font-size:0.8rem;padding:0.7rem 0.3rem}
+  }
+</style>
+</head>
+<body>
+
+<!-- START SCREEN -->
+<div id="start-screen">
+  <div class="logo-wrap">
+    <div class="logo-suits">♠ ♥ ♦ ♣</div>
+    <div class="logo-title">BlackjackWeb</div>
+    <div class="logo-sub">Casino Experience</div>
+  </div>
+  <div class="start-card">
+    <div class="start-balance-display">
+      <div class="start-balance-label">Dein Guthaben</div>
+      <div class="start-balance-amount" id="start-balance-display">CHF 250</div>
+    </div>
+    <div class="input-group">
+      <label class="input-label" for="name-input">Spielername</label>
+      <input class="input-field" id="name-input" type="text" placeholder="z.B. DarioJaguar" maxlength="20" autocomplete="off">
+    </div>
+    <button class="btn-primary" id="btn-start-game">Am Tisch Platz nehmen →</button>
+    <div style="margin-top:1.5rem">
+      <div class="stats-section hidden" id="start-stats">
+        <div class="stat-item"><div class="stat-val" id="stat-rounds">0</div><div class="stat-lbl">Runden</div></div>
+        <div class="stat-item"><div class="stat-val" id="stat-wins">0</div><div class="stat-lbl">Siege</div></div>
+        <div class="stat-item"><div class="stat-val" id="stat-winrate">0%</div><div class="stat-lbl">Gewinnrate</div></div>
+        <div class="stat-item"><div class="stat-val" id="stat-pnl">0</div><div class="stat-lbl">G/V CHF</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="game-screen">
+  <div class="table-area">
+    <div class="game-header">
+      <div class="player-info">
+        <span class="player-name-badge" id="display-name">Spieler</span>
+        <span class="balance-badge" id="display-balance">CHF 250</span>
+      </div>
+      <div class="logo-small">♠ BJW</div>
+      <button class="btn-menu" id="btn-to-menu">← Menü</button>
+    </div>
+    <div class="dealer-zone">
+      <div class="zone-label">Dealer</div>
+      <div class="hand-value" id="dealer-value"></div>
+      <div class="cards-row" id="dealer-cards"></div>
+    </div>
+    <div class="table-divider"></div>
+    <div class="bet-on-table">
+      <span class="bet-chip-display" id="bet-on-table-label"></span>
+      <span class="bet-amount-display" id="bet-on-table-amount"></span>
+    </div>
+    <div class="table-divider"></div>
+    <div class="player-zone">
+      <div id="player-hands-container">
+        <div class="cards-row" id="player-cards-0"></div>
+      </div>
+      <div class="hand-value" id="player-value"></div>
+      <div class="zone-label" style="margin-top:0.3rem">Du</div>
+    </div>
+    <div class="result-banner" id="result-banner"></div>
+  </div>
+
+  <div class="bottom-panel">
+    <div class="bankruptcy-indicator hidden" id="bankruptcy-warning">⚠ Kein Guthaben – Neustart möglich</div>
+    <div class="chip-section" id="chip-section">
+      <div class="chip-label">Einsatz wählen</div>
+      <div class="chips-row">
+        <div class="chip" data-val="5">5</div>
+        <div class="chip" data-val="10">10</div>
+        <div class="chip" data-val="25">25</div>
+        <div class="chip" data-val="50">50</div>
+        <div class="chip" data-val="100">100</div>
+        <div class="chip" data-val="250">250</div>
+        <div class="chip" data-val="500">500</div>
+        <div class="chip" data-val="all">ALL IN</div>
+      </div>
+    </div>
+    <div class="current-bet-row" id="current-bet-row">
+      <span class="current-bet-label">Einsatz:</span>
+      <span class="current-bet-value" id="current-bet-display">CHF 0</span>
+      <button class="btn-clear-bet" id="btn-clear-bet">✕</button>
+    </div>
+    <div class="action-row" id="action-row">
+      <button class="btn-action btn-deal" id="btn-deal">Karten geben</button>
+      <button class="btn-action btn-hit hidden" id="btn-hit">Hit</button>
+      <button class="btn-action btn-stand hidden" id="btn-stand">Stand</button>
+      <button class="btn-action btn-double hidden" id="btn-double">Double</button>
+      <button class="btn-action btn-split hidden" id="btn-split">Split</button>
+      <button class="btn-action btn-next hidden" id="btn-next">Neue Runde →</button>
+    </div>
+  </div>
+</div>
+
+<!-- BANKRUPT MODAL -->
+<div class="modal-overlay hidden" id="bankruptcy-modal">
+  <div class="modal-box">
+    <div class="modal-icon">💸</div>
+    <div class="modal-title">Bankrott!</div>
+    <div class="modal-text">Dein Guthaben ist aufgebraucht. Du kannst mit CHF 250 neu starten.</div>
+    <button class="btn-primary" id="btn-restart" style="margin-bottom:0.8rem">Mit CHF 250 neu starten</button><br>
+    <button class="btn-menu" id="btn-restart-menu" style="margin-top:0.5rem">← Zurück zum Menü</button>
+  </div>
+</div>
+
+<script>
+const SUITS=['♠','♥','♦','♣'],RANKS=['2','3','4','5','6','7','8','9','10','J','Q','K','A'],NUM_DECKS=6;
+
+let state={balance:250,playerName:'',stats:{rounds:0,wins:0,losses:0,pushes:0,totalPnl:0}};
+let game={shoe:[],dealerHand:[],playerHands:[[]],activeHandIdx:0,bets:[0],currentBet:0,phase:'betting'};
+
+// STORAGE
+function saveState(){
+  localStorage.setItem('bjw_bal',state.balance);
+  localStorage.setItem('bjw_nm',state.playerName);
+  localStorage.setItem('bjw_st',JSON.stringify(state.stats));
+  localStorage.setItem('bjw_fv','false');
+}
+function loadState(){
+  if(localStorage.getItem('bjw_fv')==='false'){
+    state.balance=parseFloat(localStorage.getItem('bjw_bal'))||0;
+    state.playerName=localStorage.getItem('bjw_nm')||'';
+    try{state.stats=JSON.parse(localStorage.getItem('bjw_st'))||state.stats}catch(e){}
+  }
+}
+
+// DECK
+function buildShoe(){
+  const s=[];
+  for(let d=0;d<NUM_DECKS;d++) for(const suit of SUITS) for(const rank of RANKS) s.push({suit,rank});
+  return shuffle(s);
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function dealCard(){if(game.shoe.length<52)game.shoe=buildShoe();return game.shoe.pop()}
+
+// VALUE
+function handValue(hand){
+  let t=0,aces=0;
+  for(const c of hand){
+    if(c.hidden)continue;
+    if(c.rank==='A'){aces++;t+=11}
+    else if(['J','Q','K'].includes(c.rank))t+=10;
+    else t+=parseInt(c.rank);
+  }
+  while(t>21&&aces>0){t-=10;aces--}
+  return t;
+}
+function isBust(h){return handValue(h)>21}
+function isBlackjack(h){return h.length===2&&handValue(h)===21}
+function isSoft17(h){
+  let t=0,aces=0;
+  for(const c of h){
+    if(c.rank==='A'){aces++;t+=11}
+    else if(['J','Q','K'].includes(c.rank))t+=10;
+    else t+=parseInt(c.rank);
+  }
+  while(t>21&&aces>0){t-=10;aces--}
+  return t===17&&aces>0;
+}
+
+// RENDER CARD
+function mkCard(card,delay=0){
+  const el=document.createElement('div');
+  const red=card.suit==='♥'||card.suit==='♦';
+  if(card.hidden){el.className='card face-down';}
+  else{
+    el.className=`card ${red?'red':'black'}`;
+    el.style.animationDelay=delay+'s';
+    el.innerHTML=`<div class="card-corner">${card.rank}<br>${card.suit}</div><div class="card-center">${card.suit}</div><div class="card-corner card-corner-bottom">${card.rank}<br>${card.suit}</div>`;
+  }
+  return el;
+}
+
+function renderDealerCards(hideHole){
+  const c=document.getElementById('dealer-cards');c.innerHTML='';
+  game.dealerHand.forEach((card,i)=>{
+    c.appendChild(mkCard(hideHole&&i===1?{...card,hidden:true}:card,i*0.08));
+  });
+}
+
+function renderPlayerCards(){
+  const cont=document.getElementById('player-hands-container');
+  cont.innerHTML='';
+  if(game.playerHands.length===1){
+    const row=document.createElement('div');row.className='cards-row';
+    game.playerHands[0].forEach((c,i)=>row.appendChild(mkCard(c,i*0.08)));
+    cont.appendChild(row);
+  } else {
+    const wrap=document.createElement('div');wrap.className='split-hands';
+    game.playerHands.forEach((hand,hi)=>{
+      const hd=document.createElement('div');
+      hd.className=`split-hand${hi===game.activeHandIdx?' active-split':''}`;
+      const row=document.createElement('div');row.className='cards-row';
+      hand.forEach((c,i)=>row.appendChild(mkCard(c,i*0.08)));
+      const val=document.createElement('div');val.className='hand-value';val.textContent=handValue(hand);
+      hd.appendChild(row);hd.appendChild(val);wrap.appendChild(hd);
+    });
+    cont.appendChild(wrap);
+  }
+}
+
+function updateValues(hideHole){
+  const dv=document.getElementById('dealer-value');
+  if(hideHole){const vis=game.dealerHand.filter(c=>!c.hidden);dv.textContent=vis.length?handValue(vis):'';}
+  else{const v=handValue(game.dealerHand);dv.textContent=v||'';dv.className='hand-value'+(v>21?' bust':'');}
+  if(game.playerHands.length===1){
+    const pv=document.getElementById('player-value');
+    const v=handValue(game.playerHands[0]);
+    pv.textContent=game.playerHands[0].length?v:'';
+    pv.className='hand-value'+(v>21?' bust':'')+(isBlackjack(game.playerHands[0])?' blackjack':'');
+  } else {
+    document.getElementById('player-value').textContent='';
+  }
+}
+
+function updateBalanceDisplay(){
+  document.getElementById('display-balance').textContent=`CHF ${state.balance}`;
+  document.getElementById('display-name').textContent=state.playerName||'Spieler';
+}
+function updateBetOnTable(){
+  const t=game.bets.reduce((a,b)=>a+b,0);
+  document.getElementById('bet-on-table-label').textContent=t>0?'Einsatz':'';
+  document.getElementById('bet-on-table-amount').textContent=t>0?`CHF ${t}`:'';
+}
+
+// UI PHASES
+function showBettingUI(){
+  document.getElementById('chip-section').classList.remove('hidden');
+  document.getElementById('current-bet-row').classList.remove('hidden');
+  document.getElementById('btn-deal').classList.remove('hidden');
+  ['btn-hit','btn-stand','btn-double','btn-split','btn-next'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  updateChipStates();
+}
+function showPlayingUI(){
+  document.getElementById('chip-section').classList.add('hidden');
+  document.getElementById('current-bet-row').classList.add('hidden');
+  document.getElementById('btn-deal').classList.add('hidden');
+  document.getElementById('btn-next').classList.add('hidden');
+  document.getElementById('btn-hit').classList.remove('hidden');
+  document.getElementById('btn-stand').classList.remove('hidden');
+  const hand=game.playerHands[game.activeHandIdx];
+  const bet=game.bets[game.activeHandIdx];
+  if(hand.length===2&&state.balance>=bet) document.getElementById('btn-double').classList.remove('hidden');
+  else document.getElementById('btn-double').classList.add('hidden');
+  if(hand.length===2&&rankNum(hand[0])===rankNum(hand[1])&&game.playerHands.length<3&&state.balance>=bet) document.getElementById('btn-split').classList.remove('hidden');
+  else document.getElementById('btn-split').classList.add('hidden');
+}
+function showDoneUI(){
+  ['chip-section','current-bet-row','btn-deal','btn-hit','btn-stand','btn-double','btn-split'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  document.getElementById('btn-next').classList.remove('hidden');
+}
+function updateChipStates(){
+  document.querySelectorAll('.chip').forEach(chip=>{
+    const v=chip.dataset.val;
+    chip.classList.toggle('disabled',v==='all'?state.balance<=0:parseInt(v)>state.balance);
+  });
+}
+function rankNum(card){
+  if(['J','Q','K'].includes(card.rank))return 10;
+  if(card.rank==='A')return 11;
+  return parseInt(card.rank);
+}
+
+// GAME ACTIONS
+function startDeal(){
+  if(game.currentBet<=0){showBanner('Einsatz wählen!','push');return;}
+  if(game.currentBet>state.balance){showBanner('Zu wenig Guthaben!','lose');return;}
+  state.balance-=game.currentBet;saveState();updateBalanceDisplay();
+  game.playerHands=[[dealCard(),dealCard()]];
+  game.dealerHand=[dealCard(),{...dealCard(),hidden:true}];
+  game.bets=[game.currentBet];game.activeHandIdx=0;game.phase='playing';
+  game.currentBet=0;
+  document.getElementById('current-bet-display').textContent='CHF 0';
+  updateBetOnTable();
+  renderDealerCards(true);renderPlayerCards();updateValues(true);
+  if(isBlackjack(game.playerHands[0])){setTimeout(()=>endRound(),400);return;}
+  showPlayingUI();
+}
+function playerHit(){
+  if(game.phase!=='playing')return;
+  const hand=game.playerHands[game.activeHandIdx];
+  hand.push(dealCard());renderPlayerCards();updateValues(true);
+  if(isBust(hand)||handValue(hand)===21)nextHandOrDealer();
+  else showPlayingUI();
+}
+function playerStand(){if(game.phase!=='playing')return;nextHandOrDealer();}
+function playerDouble(){
+  if(game.phase!=='playing')return;
+  const bet=game.bets[game.activeHandIdx];
+  if(state.balance<bet)return;
+  state.balance-=bet;game.bets[game.activeHandIdx]*=2;
+  saveState();updateBalanceDisplay();updateBetOnTable();
+  game.playerHands[game.activeHandIdx].push(dealCard());
+  renderPlayerCards();updateValues(true);nextHandOrDealer();
+}
+function playerSplit(){
+  if(game.phase!=='playing')return;
+  const hand=game.playerHands[game.activeHandIdx];
+  const bet=game.bets[game.activeHandIdx];
+  if(state.balance<bet||hand.length!==2)return;
+  state.balance-=bet;saveState();updateBalanceDisplay();
+  const c2=hand.pop();hand.push(dealCard());
+  game.playerHands.push([c2,dealCard()]);game.bets.push(bet);
+  renderPlayerCards();updateValues(true);
+  document.getElementById('player-value').textContent='';
+  showPlayingUI();
+}
+function nextHandOrDealer(){
+  if(game.activeHandIdx<game.playerHands.length-1){
+    game.activeHandIdx++;renderPlayerCards();
+    document.getElementById('player-value').textContent=handValue(game.playerHands[game.activeHandIdx]);
+    showPlayingUI();
+  } else {dealerPlay();}
+}
+function dealerPlay(){
+  game.phase='dealer';
+  game.dealerHand[1].hidden=false;
+  renderDealerCards(false);updateValues(false);
+  const draw=()=>{
+    const v=handValue(game.dealerHand);
+    if(v<17||(v===17&&isSoft17(game.dealerHand))){
+      setTimeout(()=>{game.dealerHand.push(dealCard());renderDealerCards(false);updateValues(false);draw();},500);
+    } else {setTimeout(()=>endRound(),400);}
+  };
+  setTimeout(draw,600);
+}
+function endRound(){
+  game.phase='done';
+  const dv=handValue(game.dealerHand),dBust=dv>21,dBJ=isBlackjack(game.dealerHand);
+  game.dealerHand.forEach(c=>c.hidden=false);
+  renderDealerCards(false);updateValues(false);
+  let totalWin=0,netChange=0,resultMsg='',resultClass='',roundWin=false,roundLoss=false;
+  state.stats.rounds++;
+  game.playerHands.forEach((hand,hi)=>{
+    const bet=game.bets[hi],pv=handValue(hand),pBust=pv>21;
+    const pBJ=isBlackjack(hand)&&game.playerHands.length===1;
+    let payout=0;
+    if(pBust){payout=0;roundLoss=true;}
+    else if(pBJ&&!dBJ){payout=bet+Math.floor(bet*1.5);resultMsg='🃏 Blackjack!';resultClass='blackjack-win';roundWin=true;}
+    else if(dBJ&&!pBJ){payout=0;roundLoss=true;}
+    else if(pBJ&&dBJ){payout=bet;}
+    else if(dBust){payout=bet*2;roundWin=true;}
+    else if(pv>dv){payout=bet*2;roundWin=true;}
+    else if(pv===dv){payout=bet;}
+    else{payout=0;roundLoss=true;}
+    totalWin+=payout;
+  });
+  state.balance+=totalWin;
+  netChange=totalWin-game.bets.reduce((a,b)=>a+b,0);
+  state.stats.totalPnl+=netChange;
+  if(!resultMsg){
+    if(netChange>0){resultMsg=`+CHF ${netChange} gewonnen! 🎉`;resultClass='win';}
+    else if(netChange<0){resultMsg=`CHF ${Math.abs(netChange)} verloren`;resultClass='lose';}
+    else{resultMsg='Unentschieden – Push!';resultClass='push';}
+  }
+  if(roundWin)state.stats.wins++;else if(roundLoss)state.stats.losses++;else state.stats.pushes=(state.stats.pushes||0)+1;
+  saveState();updateBalanceDisplay();updateBetOnTable();
+  setTimeout(()=>{
+    showBanner(resultMsg,resultClass);showDoneUI();
+    if(state.balance<=0){
+      document.getElementById('bankruptcy-warning').classList.remove('hidden');
+      setTimeout(()=>document.getElementById('bankruptcy-modal').classList.remove('hidden'),1200);
+    }
+  },300);
+}
+function showBanner(msg,cls){
+  const b=document.getElementById('result-banner');
+  b.textContent=msg;b.className=`result-banner ${cls} show`;
+  setTimeout(()=>{b.className=`result-banner ${cls}`;},2800);
+}
+function newRound(){
+  game.dealerHand=[];game.playerHands=[[]];game.bets=[0];game.activeHandIdx=0;game.currentBet=0;game.phase='betting';
+  document.getElementById('dealer-cards').innerHTML='';
+  document.getElementById('player-hands-container').innerHTML='<div class="cards-row" id="player-cards-0"></div>';
+  document.getElementById('dealer-value').textContent='';
+  document.getElementById('player-value').textContent='';
+  document.getElementById('current-bet-display').textContent='CHF 0';
+  document.getElementById('result-banner').className='result-banner';
+  document.getElementById('bankruptcy-warning').classList.add('hidden');
+  updateBetOnTable();showBettingUI();
+}
+
+// CHIP CLICK
+function handleChip(val){
+  if(game.phase!=='betting')return;
+  if(val==='all'){game.currentBet=state.balance;}
+  else{const n=parseInt(val);if(game.currentBet+n>state.balance)return;game.currentBet+=n;}
+  document.getElementById('current-bet-display').textContent=`CHF ${game.currentBet}`;
+}
+
+// SCREENS
+function showGameScreen(){
+  document.getElementById('start-screen').style.display='none';
+  document.getElementById('game-screen').style.display='flex';
+  updateBalanceDisplay();game.shoe=buildShoe();newRound();
+}
+function showStartScreen(){
+  document.getElementById('start-screen').style.display='flex';
+  document.getElementById('game-screen').style.display='none';
+  updateStartStats();
+}
+function updateStartStats(){
+  document.getElementById('start-balance-display').textContent=`CHF ${state.balance}`;
+  const s=state.stats;
+  if(s.rounds>0){
+    document.getElementById('start-stats').classList.remove('hidden');
+    document.getElementById('stat-rounds').textContent=s.rounds;
+    document.getElementById('stat-wins').textContent=s.wins;
+    document.getElementById('stat-winrate').textContent=Math.round(s.wins/s.rounds*100)+'%';
+    const p=s.totalPnl;
+    document.getElementById('stat-pnl').textContent=(p>=0?'+':'')+p;
+    document.getElementById('stat-pnl').style.color=p>=0?'var(--gold)':'#e74c3c';
+  }
+}
+
+// EVENTS
+document.getElementById('btn-start-game').addEventListener('click',()=>{
+  state.playerName=document.getElementById('name-input').value.trim()||'Spieler';
+  saveState();showGameScreen();
+});
+document.getElementById('name-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('btn-start-game').click();});
+document.getElementById('btn-to-menu').addEventListener('click',showStartScreen);
+document.getElementById('btn-deal').addEventListener('click',startDeal);
+document.getElementById('btn-hit').addEventListener('click',playerHit);
+document.getElementById('btn-stand').addEventListener('click',playerStand);
+document.getElementById('btn-double').addEventListener('click',playerDouble);
+document.getElementById('btn-split').addEventListener('click',playerSplit);
+document.getElementById('btn-next').addEventListener('click',newRound);
+document.getElementById('btn-clear-bet').addEventListener('click',()=>{game.currentBet=0;document.getElementById('current-bet-display').textContent='CHF 0';});
+document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>handleChip(c.dataset.val)));
+document.getElementById('btn-restart').addEventListener('click',()=>{
+  state.balance=250;state.stats={rounds:0,wins:0,losses:0,pushes:0,totalPnl:0};
+  saveState();document.getElementById('bankruptcy-modal').classList.add('hidden');
+  updateBalanceDisplay();newRound();
+});
+document.getElementById('btn-restart-menu').addEventListener('click',()=>{
+  state.balance=250;state.stats={rounds:0,wins:0,losses:0,pushes:0,totalPnl:0};
+  saveState();document.getElementById('bankruptcy-modal').classList.add('hidden');showStartScreen();
+});
+
+// INIT
+loadState();
+if(state.playerName)document.getElementById('name-input').value=state.playerName;
+updateStartStats();
+</script>
+</body>
+</html>
